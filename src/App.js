@@ -5,7 +5,7 @@ import { Dropdown } from 'primereact/dropdown';
 import { InputNumber } from 'primereact/inputnumber';
 import { InputText } from 'primereact/inputtext'
 import { Button } from 'primereact/button'
-import { Chart } from 'primereact/chart';
+import { Line } from 'react-chartjs-2';
 
 import 'primereact/resources/themes/saga-blue/theme.css';
 import 'primereact/resources/primereact.min.css';
@@ -14,164 +14,177 @@ import 'primeicons/primeicons.css';
 export function App() {
 
   //general variables
-  const [type, setType] = useState();
-  const [started, setStarted] = useState(false);
-
-  const typeSelector = (typeSelected) => {
-    setType(typeSelected)
-    if (typeSelected === 'Data') {
-      setStart(false)
-      setData(true)
-    } else if (typeSelected === 'Start') {
-      setStart(true)
-      setData(false)
-    }
-  }
-
-  //type variables
-  const [data, setData] = useState(false);
-  const [start, setStart] = useState(false);
-
-  const optionsNotStarted = [
+  const [type, setType] = useState();// store input value of event
+  const [events, setEvents] = useState([]);// store all events that happened
+  const [started, setStarted] = useState(false);//used to make other events appears
+  
+  const optionsNotStarted = [ //options for dropdown menu in case not started
     { label: 'Start', value: 'Start' },
   ]
-
-  const optionsStarted = [
+  
+  const optionsStarted = [ //options for dropdown menu in case started
     { label: 'Data', value: 'Data' },
     { label: 'Span', value: 'Span' },
     { label: 'Stop', value: 'Stop' },
   ]
-
-  const handleStart = () => {
+  
+  //type variables
+  
+  const [data, setData] = useState(false);//makes input to event Data appear
+  const [start, setStart] = useState(false);//makes input to event Start appear
+  const [stop, setStop] = useState(false)//makes input to event Stop appear
+  
+  const typeSelector = (typeSelected) => { //verify event choice and change screen
+    setType(typeSelected)
+    if (typeSelected === 'Data') {
+      setStart(false)
+      setData(true)
+      setStop(false)
+    } else if (typeSelected === 'Start') {
+      setStart(true)
+      setData(false)
+      setStop(false)
+    } else if (typeSelected === 'Stop') {
+      setStop(true)
+      setData(false)
+      setStart(false)
+    }
+  }
+  
+  //start variables
+  const [grouped, setGrouped] = useState(); // input value for group
+  const [group, setGroup] = useState([]); // all input values for group
+  const [selected, setSelected] = useState(); // input value for select
+  const [select, setSelect] = useState([]); // all input values for select
+  
+  const handleStart = () => {// create event, make other events appear
+    setEvents([...events, ['start', new Date, [...select], [...group]]])
     setStart(false)
     setStarted(true)
     setType()
   }
 
-  //start variables
-  const [grouped, setGrouped] = useState();
-  const [group, setGroup] = useState([]);
-  const [selected, setSelected] = useState();
-  const [select, setSelect] = useState([]);
-
-  const handleSelect = () => {
+  const handleSelect = () => {//organize selected inside select
     setSelect([...select, selected])
     setSelected('')
   }
 
-  const handleRemoveSelect = (selectItem) => {
+  const handleRemoveSelect = (selectItem) => {// remove Select from array of Select
     setSelect(select.filter(item => item !== selectItem))
   }
 
-  const handleGroup = () => {
+  const handleGroup = () => {//organize grouped inside group
     setGroup([...group, grouped])
     setGrouped('')
   }
 
-  const handleRemoveGroup = (groupItem) => {
+  const handleRemoveGroup = (groupItem) => {// remove Group from array of Group
     setGroup(group.filter(item => item !== groupItem))
   }
 
   //data variables
-  const [groupedValue, setGroupedValue] = useState([]);
-  const [groupValue, setGroupValue] = useState([]);
-  const [selectedValue, setSelectedValue] = useState([]);
-  const [selectValue, setSelectValue] = useState([]);
-  const [dataValues, setDataValues] = useState([]);
 
-  const handleGroupValue = () => {
+  const [groupedValue, setGroupedValue] = useState([]); //input value for group
+  const [groupValue, setGroupValue] = useState([]);//all input values for group
+  const [selectedValue, setSelectedValue] = useState([]); // input value for select
+  const [selectValue, setSelectValue] = useState([]); // all input values for select
+  const [dataValues, setDataValues] = useState([]); // combination of select and group values
+  const [arrayData, setArrayData] = useState([]) // values that are used to make the chart
+  
+
+  const handleGroupValue = () => { // save grouped value so it's possible to right the next
     setGroupValue([...groupValue, groupedValue])
   }
 
-  const handleSelectValue = () => {
+  const handleSelectValue = () => {// save selected value so it's possible to right the next
     setSelectValue([...selectValue, selectedValue])
   }
 
-  const handleData = () => {
+  const handleData = () => {//organize data inside their needed fields
+    setEvents([...events, ['Data', new Date, [...groupValue], [...selectValue]]])
     setDataValues([...dataValues, [...groupValue, ...selectValue]])
     setGroupValue([]);
     setSelectValue([]);
+    chartValues();
   }
 
-  const handleRemoveData = (dataItem) => {
+  const handleRemoveData = (dataItem) => {// remove Data from array of Data
+    // if to make chart desapear in case there is no data
+    if (dataValues.length - 1 === 0) {
+      setGenerated(false)
+    }
     setDataValues(dataValues.filter(item => item !== dataItem))
+    setArrayData([]);
+  }
+
+  //stop variables
+  
+  const handleStop = () => { // set most variables to null so it can start a new chart
+    setEvents([...events, ['Stop', new Date]])
+    setGenerated(false)
+    setDataValues([])
+    setGroup([])
+    setSelect([])
+    setStarted(false)
+    setStop(false)
+    setArrayData([]);
   }
 
   //chart variables
 
-  const basicData = {
-    labels: ['January', 'February', 'March', 'April', 'May', 'June', 'July'],
-    datasets: [
-        {
-            label: 'First Dataset',
-            data: [65, 59, 80, 81, 56, 55, 40],
-            fill: false,
-            borderColor: '#42A5F5',
-            tension: .4
-        },
-        {
-            label: 'Second Dataset',
-            data: [28, 48, 40, 19, 86, 27, 90],
-            fill: false,
-            borderColor: '#FFA726',
-            tension: .4
-        }
-    ]
-  };
+  const [generated, setGenerated] = useState(false)// makes chart appear
 
-  // const basicData = {
-  //   labels: groupValue,
-  //   datasets: [ dataValues.map((item, number)=>{ 
-  //     const groupDataValues = item.slice(0, group.length)
-  //     const selectDataValues = item.slice(group.length, group.length+select.length )
-  //     return (
-  //       {
-  //         label: {groupDataValues},
-  //         data: {selectDataValues},
-  //         fill: false,
-  //         borderColor: '#52A5F5',
-  //         tension: .4
-  //       }
-  //     )}
-  //   )]
-  // };
-
-  const getLightTheme = () => {
-    let basicOptions = {
-        maintainAspectRatio: false,
-        aspectRatio: .6,
-        plugins: {
-            legend: {
-                labels: {
-                    color: '#495057'
-                }
+  const chartValues = () => {
+    //if to only loops if there is at least two values
+    if (dataValues[1]) {
+      //loops to compare every item inside dataValues
+      for (var i = 0; i < dataValues.length; i++) {
+        for (var j = 0; j < dataValues.length; j++) {
+          // if to not compare the same values
+          if(dataValues[i]!==dataValues[j]){
+          // if to se if groups are the same
+          if ((JSON.stringify(dataValues[i].slice(0, group.length)) === JSON.stringify(dataValues[j].slice(0, group.length)))) {
+            // loop to get the position of the correct values that will make the chart
+            for (var k = 0; k < select.length; k++) {
+              setArrayData([...arrayData,
+              ['{' + dataValues[i].slice(0, group.length) + ',' + select[k-1] + '}',
+              dataValues[j][group.length + k - 1],
+              dataValues[i][group.length + k - 1]],
+              ['{' + dataValues[i].slice(0, group.length) + ',' + select[k] + '}',
+              dataValues[j][group.length + k],
+              dataValues[i][group.length + k]]
+              ])
             }
-        },
-        scales: {
-            x: {
-                ticks: {
-                    color: '#495057'
-                },
-                grid: {
-                    color: '#ebedef'
-                }
-            },
-            y: {
-                ticks: {
-                    color: '#495057'
-                },
-                grid: {
-                    color: '#ebedef'
-                }
-            }
+          }
         }
-    };
-    return {
-      basicOptions,
+        }
+      }
     }
   }
 
-  const { basicOptions } = getLightTheme();
+  const dataChart = {// the data required to make chart
+    labels: select.map((item, index) => { return index }),
+    datasets: arrayData.map((item3, number3) => {
+      return (
+        {
+          label: (generated ? item3[0] : 'Titulo'),
+          data: (generated ? item3.slice(1, item3.length) : 0),
+          fill: false,
+          backgroundColor: (number3 % 5 === 0 ? 'rgb(255, 99, 132)' : number3 % 4 === 0 ? 'rgb(96, 141, 29)' : number3 % 3 === 0 ? 'rgb(79, 151, 163)' : number3 % 2 === 0 ? 'rgb(185, 24, 156)' : 'rgb(255, 219, 36)'),
+          borderColor: (number3 % 5 === 0 ? 'rgb(255, 99, 132)' : number3 % 4 === 0 ? 'rgb(96, 141, 29)' : number3 % 3 === 0 ? 'rgb(79, 151, 163)' : number3 % 2 === 0 ? 'rgb(185, 24, 156)' : 'rgb(255, 219, 36)'),
+          yAxisID: 'y-axis-1',
+        }
+      )
+    })
+  };
+
+  const options = { // style options chart
+    plugins: {
+      legend: {
+        position: 'right'
+      },
+    }
+  }
 
   return (
     <div className="App">
@@ -230,6 +243,7 @@ export function App() {
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', flexDirection: 'row' }}>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <small>Instructions: Do it one by one.When all set, click on Add Event.Verify, delete if needed.</small>
                 <h3 style={{ marginRight: 10 }}>Groups</h3>
                 <div style={{ display: 'flex', flexDirection: 'row', marginRight: 10 }}>
                   {group.map((value, number) => {
@@ -245,7 +259,7 @@ export function App() {
                   {select.map((value, number) => {
                     return (<>
                       <p style={{ marginRight: 5, marginLeft: 5 }}>{value}:</p>
-                      <InputText disabled={selectValue[number]} value={selectValue[number]} onChange={(e) => setSelectedValue(e.target.value)} />
+                      <InputNumber disabled={selectValue[number]} value={selectValue[number]} onValueChange={(e) => setSelectedValue(e.target.value)} mode='decimal' minFractionDigits={1} locale="de-DE" />
                       <Button disabled={selectValue[number]} style={{ marginRight: 5 }} onClick={handleSelectValue} icon="pi pi-check" />
                     </>)
                   })}
@@ -267,14 +281,20 @@ export function App() {
               <Button disabled={!((selectValue.length + groupValue.length) === (select.length + group.length))} onClick={handleData} label="Add Event" icon="pi pi-check" />
             </div>
           </div>)
-          : <></>
+          : (stop ? // stop event
+          <Button style={{ margin: 5 }} onClick={handleStop} label="Delete chart and stop this set of data." icon="pi pi-check" /> 
+          : <></>)
         )}
-        <div className="card">
-          <h5>Basic</h5>
-          <Chart type="line" data={basicData} options={basicOptions} />
-        </div>: <></>
+        {generated ? (
+          <div className="card">
+            <Line data={dataChart} options={options} />
+          </div>) : <></>}
       </div>
+      <footer>
+        <div style={{ width: '100%', padding: 5, backgroundColor: '#414141', height: 50, alignItems: 'center' }}>
+          <Button disabled={generated ? generated : arrayData.length === 0} onClick={() => setGenerated(true)} label="Generate Chart" />
+        </div>
+      </footer>
     </div>
   );
 }
-
