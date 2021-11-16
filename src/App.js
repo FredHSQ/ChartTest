@@ -108,6 +108,8 @@ export function App() {
     chartValues();
   }
 
+  
+
   const handleRemoveData = (dataItem) => {// remove Data from array of Data
     // if to make chart desapear in case there is no data
     if (dataValues.length - 1 === 0) {
